@@ -1,7 +1,10 @@
 import json
 import requests
 
-from flask import Flask, render_template, request
+from fastapi import FastAPI, Request, Form
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 def returnPrediction(pos, neg):
     with open('openapi.json') as file:
@@ -11,7 +14,7 @@ def returnPrediction(pos, neg):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer <YOUR_TOKEN_HERE>"
+        "Authorization": "Bearer jg1x2E_qmXDJfcVR.Z/VSjP8-eOhm"
     }
 
     payload = {
@@ -33,27 +36,38 @@ def returnPrediction(pos, neg):
     data = response.json()
 
     return data
-    # print(data['output']['urls'])
 
-app = Flask(__name__)
+app = FastAPI()
+templates = Jinja2Templates(directory='templates')
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+app.mount('/static', StaticFiles(directory='static'), name='static')
 
-@app.route('/process_form', methods=['POST'])
-def process_form():
-    positiveInput = request.form['positive_input']
-    negativeInput = request.form['negative_input']
-    if not positiveInput:
-        positiveInput = " "
-    if not negativeInput:
-        negativeInput = " "
+class FormData(BaseModel):
+    positive_input: str
+    negative_input: str
 
-    data = returnPrediction(pos=positiveInput, neg=negativeInput)
+@app.get('/')
+async def form(request: Request):
+    return templates.TemplateResponse('index.html', context={'request': request})
+
+@app.post('/process_form')
+async def process_form(request: Request, form_data: FormData = Form(...)):
+    pos = form_data.positive_input
+    neg = form_data.negative_input
+    if not pos:
+        pos = " "
+    if not neg:
+        neg = " "
+    print(pos)
+    print(neg)
+
+    data = returnPrediction(pos=pos, neg=neg)
     url = data['output']['urls'][0]
+    print(url)
 
-    return render_template('index.html', image_link=url)
+    context = {'request': request, 'image_link': url}
+
+    return templates.TemplateResponse('index.html', context=context)
 
 
 
