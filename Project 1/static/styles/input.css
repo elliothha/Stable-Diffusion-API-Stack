@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+    
+    
+}
+
+#main-image {
+    transform: perspective(1500px) rotateX(-10deg) rotateY(15deg);
+    border-radius: 1rem;
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 25px 50px -12px;
+    transition: transform 1s ease 0s;
+
+    &:hover {
+        transform: perspective(3000px) rotateX(10deg) rotateY(5deg);
+    }
+}
+
+input[type=textarea] {
+    overflow: auto;
+    outline: none;
+
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+
+    resize: none;
+}
+
+input[type=submit]::hover {
+    cursor: hover;
+}

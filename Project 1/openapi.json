@@ -1,0 +1,942 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Morgenrot AI Pool API",
+    "version": "0.0.1",
+    "description": "REST API for AI Pool developers\n\n# Authorization\n\nAPI access token is generated when the app has been created. All API request must be called with API access token in Authorization header.\n```\nAuthorization: Bearer <token>\n```\n\n# Rate limits\n\n**TBD**    \n\nIf you hit API rate limit, API server will be return HTTP status with `429` and `Retry-After` HTTP header. This value is the time in seconds to next rate limit window.",
+    "contact": {
+      "name": "TAS Design Group"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.ai8pool.com"
+    }
+  ],
+  "paths": {
+    "/version": {
+      "get": {
+        "summary": "Get API version",
+        "responses": {
+          "200": {
+            "description": "OK\n",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string",
+                      "example": "v1"
+                    }
+                  },
+                  "required": [
+                    "version"
+                  ]
+                },
+                "examples": {
+                  "例": {
+                    "value": {
+                      "version": "0.0.1"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-api-version",
+        "description": "Get latest API version."
+      },
+      "parameters": []
+    },
+    "/v1/apps": {
+      "post": {
+        "summary": "Create new app",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string",
+                          "pattern": "/^[A-Za-z0-9\\-\\._\\~\\+\\/]+=*$/",
+                          "description": "API access token.   \n**There is no way to view this token value excluding this response.**",
+                          "readOnly": true
+                        }
+                      },
+                      "required": [
+                        "token"
+                      ]
+                    },
+                    {
+                      "$ref": "#/components/schemas/App"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedRequest"
+          }
+        },
+        "operationId": "post-apps",
+        "description": "Create a new app to signed in user account.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Password"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of new app"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password",
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/predictions": {
+      "post": {
+        "summary": "Create new prediction",
+        "operationId": "post-predictions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prediction"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequest"
+          }
+        },
+        "description": "Create a new prediction request with prompt text and other parameters.  \nImages will be generated in synchronously, image url and its expiration will be retruned.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "example": "A delicious ceviche cheesecake slice",
+                    "description": "Input text prompt describing image."
+                  },
+                  "negativePrompt": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "example": "Berry sauce",
+                    "description": "Input text prompt describing to exclude from image."
+                  },
+                  "modelId": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$",
+                    "example": "1",
+                    "description": "The model ID. This value should be retrieved from `/models`."
+                  },
+                  "height": {
+                    "type": "integer",
+                    "default": 512,
+                    "minimum": 1,
+                    "maximum": 1024,
+                    "description": "Generated image's height"
+                  },
+                  "width": {
+                    "type": "integer",
+                    "default": 512,
+                    "minimum": 1,
+                    "maximum": 1024,
+                    "description": "Generated image's width"
+                  },
+                  "numInferenceSteps": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "This value will be passed to `diffusers`'s `num_inference_steps` option."
+                  },
+                  "guidanceScale": {
+                    "type": "number",
+                    "default": 7.5,
+                    "description": "This value will be passed to `diffusers`'s `guidance_scale` option."
+                  },
+                  "scheduler": {
+                    "type": "string",
+                    "description": "This value will be passed to `diffusers`'s `scheduler` option.",
+                    "enum": [
+                      "DDIM",
+                      "Euler_Ancestra",
+                      "DPM-Solver++"
+                    ],
+                    "default": "DDIM"
+                  },
+                  "numImages": {
+                    "type": "integer",
+                    "default": 1,
+                    "example": 5,
+                    "minimum": 1,
+                    "maximum": 5,
+                    "description": "The number of generating image"
+                  },
+                  "scale": {
+                    "type": "string",
+                    "description": "For Upscale",
+                    "enum": [
+                      "x1",
+                      "x2"
+                    ],
+                    "default": "x1",
+                    "example": "x2"
+                  }
+                },
+                "required": [
+                  "prompt",
+                  "modelId"
+                ]
+              }
+            }
+          },
+          "description": ""
+        }
+      },
+      "parameters": [],
+      "get": {
+        "summary": "Predictions",
+        "operationId": "get-predictions",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PredictionDigest"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequest"
+          }
+        },
+        "description": "Retrieve a list of prediction requests.  \nThis endpoint will not return generated images information.   \nIf you need to retrieve it, you should call `GET /predictions/{predictionId}`.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "in": "query",
+            "name": "page",
+            "description": "Page number"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "perPage",
+            "description": "Page size"
+          }
+        ]
+      }
+    },
+    "/v1/predictions/{predictionId}": {
+      "parameters": [
+        {
+          "schema": {
+            "type": "string",
+            "pattern": "^[0-9]+",
+            "example": "1"
+          },
+          "name": "predictionId",
+          "in": "path",
+          "required": true,
+          "description": "Prediction ID"
+        }
+      ],
+      "get": {
+        "summary": "Prediction",
+        "tags": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Prediction"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequest"
+          }
+        },
+        "operationId": "get-predictions-predictionId",
+        "description": "Retrieve a specific prediction request."
+      }
+    },
+    "/v1/models": {
+      "parameters": [],
+      "get": {
+        "summary": "Models",
+        "operationId": "get-models",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Model"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequest"
+          }
+        },
+        "description": "Retrieve a list of model.  ",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "in": "query",
+            "name": "page",
+            "description": "Page number"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            },
+            "in": "query",
+            "name": "perPage",
+            "description": "Page size"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Authorization": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": ""
+      }
+    },
+    "schemas": {
+      "App": {
+        "title": "App",
+        "x-stoplight": {
+          "id": "knym1pg8nvxbx"
+        },
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "example": "1",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "example": "Awesome app"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt"
+        ]
+      },
+      "Model": {
+        "title": "Model",
+        "x-stoplight": {
+          "id": "0z5leo6v4w8ay"
+        },
+        "type": "object",
+        "description": "The model used to generate image.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]+$",
+            "example": "1"
+          },
+          "name": {
+            "type": "string",
+            "example": "stabilityai/stable-diffusion-2-1"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "Pagination": {
+        "title": "Pagination",
+        "x-stoplight": {
+          "id": "b3gp9v2zfybli"
+        },
+        "type": "object",
+        "description": "",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Total data count"
+          },
+          "page": {
+            "type": "integer",
+            "description": "Current page number"
+          },
+          "items": {
+            "type": "integer",
+            "description": "The item size in a page"
+          },
+          "last": {
+            "type": "integer",
+            "description": "Last page number"
+          }
+        },
+        "required": [
+          "count",
+          "page",
+          "items",
+          "last"
+        ]
+      },
+      "Prediction": {
+        "title": "Prediction",
+        "x-stoplight": {
+          "id": "5e249c5e95189"
+        },
+        "type": "object",
+        "description": "The prediction request to generate image.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1",
+            "pattern": "^[0-9]+$",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Requested at（UTC, ISO 8601）",
+            "readOnly": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Completed at（UTC, ISO 8601）",
+            "readOnly": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/PredictionStatus"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message (Returned only when status is `FAILED`)",
+            "example": "Internal server error",
+            "readOnly": true
+          },
+          "input": {
+            "type": "object",
+            "description": "Request input",
+            "required": [
+              "prompt",
+              "model"
+            ],
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "maxLength": 1024,
+                "example": "A delicious ceviche cheesecake slice",
+                "description": "Input text prompt describing image."
+              },
+              "negativePrompt": {
+                "type": "string",
+                "maxLength": 1024,
+                "example": "Berry sauce",
+                "description": "Input text prompt describing to exclude from image."
+              },
+              "model": {
+                "$ref": "#/components/schemas/Model",
+                "description": "The model ID. This value should be retrieved from `/models`."
+              },
+              "height": {
+                "type": "integer",
+                "default": 512,
+                "minimum": 1,
+                "maximum": 1024,
+                "description": "Generated image's height"
+              },
+              "width": {
+                "type": "integer",
+                "default": 512,
+                "minimum": 1,
+                "maximum": 1024,
+                "description": "Generated image's width"
+              },
+              "numInferenceSteps": {
+                "type": "integer",
+                "default": 50,
+                "description": "This value will be passed to `diffusers`'s `num_inference_steps` option."
+              },
+              "guidanceScale": {
+                "type": "number",
+                "default": 7.5,
+                "description": "This value will be passed to `diffusers`'s `guidance_scale` option."
+              },
+              "scheduler": {
+                "type": "string",
+                "description": "This value will be passed to `diffusers`'s `scheduler` option.",
+                "enum": [
+                  "DDIM",
+                  "Euler_Ancestra",
+                  "DPM-Solver++"
+                ],
+                "default": "DDIM"
+              },
+              "numImages": {
+                "type": "integer",
+                "description": "The number of generating image",
+                "default": 1,
+                "minimum": 1,
+                "maximum": 5
+              },
+              "scale": {
+                "type": "string",
+                "description": "For Upscale",
+                "enum": [
+                  "x1",
+                  "x2"
+                ],
+                "default": "x1"
+              }
+            }
+          },
+          "output": {
+            "type": "object",
+            "description": "Generated images",
+            "properties": {
+              "expiredAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Expired time of generated images",
+                "readOnly": true
+              },
+              "urls": {
+                "type": "array",
+                "description": "URL array of generated images. (Array size equals to `numImages`)",
+                "items": {
+                  "type": "string",
+                  "format": "uri",
+                  "example": "https://example.com/generated/sample.png"
+                }
+              }
+            },
+            "required": [
+              "expiredAt",
+              "urls"
+            ]
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "model": {
+                "$ref": "#/components/schemas/Model"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "status",
+          "input"
+        ]
+      },
+      "PredictionDigest": {
+        "title": "PredictionDigest",
+        "type": "object",
+        "description": "The prediction request to generate image.",
+        "x-stoplight": {
+          "id": "47488c9a39f02"
+        },
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1",
+            "pattern": "^[0-9]+$",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Requested at（UTC, ISO 8601）",
+            "readOnly": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Completed at（UTC, ISO 8601）",
+            "readOnly": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/PredictionStatus"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message (Returned only when status is `FAILED`)",
+            "example": "Internal server error",
+            "readOnly": true
+          },
+          "input": {
+            "type": "object",
+            "description": "Request input",
+            "required": [
+              "prompt",
+              "model"
+            ],
+            "properties": {
+              "prompt": {
+                "type": "string",
+                "maxLength": 1024,
+                "example": "A delicious ceviche cheesecake slice",
+                "description": "Input text prompt describing image."
+              },
+              "negativePrompt": {
+                "type": "string",
+                "maxLength": 1024,
+                "example": "Berry sauce",
+                "description": "Input text prompt describing to exclude from image."
+              },
+              "model": {
+                "$ref": "#/components/schemas/Model",
+                "description": "The model ID. This value should be retrieved from `/models`."
+              },
+              "height": {
+                "type": "integer",
+                "default": 512,
+                "minimum": 1,
+                "maximum": 1024,
+                "description": "Generated image's height"
+              },
+              "width": {
+                "type": "integer",
+                "default": 512,
+                "minimum": 1,
+                "maximum": 1024,
+                "description": "Generated image's width"
+              },
+              "numInferenceSteps": {
+                "type": "integer",
+                "default": 50,
+                "description": "This value will be passed to `diffusers`'s `num_inference_steps` option."
+              },
+              "guidanceScale": {
+                "type": "number",
+                "default": 7.5,
+                "description": "This value will be passed to `diffusers`'s `guidance_scale` option."
+              },
+              "scheduler": {
+                "type": "string",
+                "description": "This value will be passed to `diffusers`'s `scheduler` option.",
+                "enum": [
+                  "DDIM",
+                  "Euler_Ancestra",
+                  "DPM-Solver++"
+                ],
+                "default": "DDIM"
+              },
+              "scale": {
+                "type": "string",
+                "description": "For Upscale",
+                "enum": [
+                  "x1",
+                  "x2"
+                ],
+                "default": "x1"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "status",
+          "input"
+        ]
+      },
+      "PredictionStatus": {
+        "title": "PredictionStatus",
+        "x-stoplight": {
+          "id": "58fc8fc587251"
+        },
+        "type": "string",
+        "enum": [
+          "STARTING",
+          "PROCESSING",
+          "SUCCEEDED",
+          "FAILED",
+          "CANCELED"
+        ],
+        "default": "STARTING",
+        "example": "SUCCEEDED",
+        "description": ""
+      }
+    },
+    "parameters": {},
+    "responses": {
+      "InvalidRequest": {
+        "description": "Response when some parameters are invalid.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errorCode": {
+                  "type": "string",
+                  "description": "INVALID_REQUEST",
+                  "example": "INVALID_REQUEST"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message",
+                  "example": "Validation error"
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "example": "fileName"
+                      },
+                      "message": {
+                        "type": "string",
+                        "example": "fileName format is not correct"
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "message"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "errorCode",
+                "message"
+              ]
+            },
+            "examples": {}
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer error=\"invalid_request\""
+          }
+        }
+      },
+      "UnauthorizedRequest": {
+        "description": "Unauthorized response.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errorCode": {
+                  "type": "string",
+                  "description": "UNAUTHORIZED",
+                  "example": "UNAUTHORIZED"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message",
+                  "example": "Unauthorized"
+                }
+              },
+              "required": [
+                "errorCode",
+                "message"
+              ]
+            },
+            "examples": {}
+          }
+        },
+        "headers": {
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer error=\"invalid_token\",realm=\"shraku.aipool.morgenrot.cloud\""
+          }
+        }
+      },
+      "TooManyRequest": {
+        "description": "Rate limit error response.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errorCode": {
+                  "type": "string",
+                  "description": "TOO_MANY_REQUEST",
+                  "example": "TOO_MANY_REQUEST"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message",
+                  "example": "Too many request"
+                }
+              },
+              "required": [
+                "errorCode",
+                "message"
+              ]
+            },
+            "examples": {}
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The time in seconds to next rate limit window."
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Internal server error response.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "errorCode": {
+                  "type": "string",
+                  "description": "TOO_MANY_REQUEST",
+                  "example": "TOO_MANY_REQUEST"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "Error message",
+                  "example": "Too many request"
+                }
+              },
+              "required": [
+                "errorCode",
+                "message"
+              ]
+            },
+            "examples": {}
+          }
+        }
+      }
+    },
+    "requestBodies": {}
+  },
+  "security": [
+    {
+      "Authorization": []
+    }
+  ]
+}
