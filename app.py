@@ -11,7 +11,7 @@ def returnPrediction(pos, neg):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer jg1x2E_qmXDJfcVR.Z/VSjP8-eOhm"
+        "Authorization": "Bearer <YOUR_TOKEN_HERE>"
     }
 
     payload = {
