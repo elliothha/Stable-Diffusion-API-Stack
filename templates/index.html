@@ -4,8 +4,14 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link href="{{ url_for('static',filename='dist/output.css') }}" rel="stylesheet">
-		<link href="{{ url_for('static',filename='styles/input.css') }}" rel="stylesheet">
+		<!-- 
+			IMPORTANT: 
+			"static" or unchanging files must be routed to in the Flask app 
+			Flask app looks for 'static' folder, and then the file argument provided is from ./static
+			Three "static" files: two Tailwind CSS files, 1 background image
+		-->
+		<link href="/static/dist/output.css" rel="stylesheet">
+		<link href="/static/styles/input.css" rel="stylesheet">
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
@@ -14,7 +20,10 @@
 	</head>
 
 	<body>
+		<!-- Landing Page Section -->
 		<div id="title" class="h-screen">
+
+			<!-- Proof of Concept Header Bar -->
 			<div class="relative">
 				<div class="absolute top-8 left-16">
 					<p class="text-white uppercase font-title text-sm w-96">AI Image Generation</p>
@@ -25,47 +34,58 @@
 					<a href="#" class="col-span-1 text-gray-200 uppercase font-title text-sm">FAQ</a>
 				</div>
 			</div>
+
+			<!-- Image background -->
 			<div class="flex items-center justify-center h-screen relative">
 				<div class="w-1/3" id="main-image">
-					<img class="object-contain opacity-75" src="{{ url_for('static',filename='img/cyberpunk.png') }}">
+					<img class="object-contain opacity-75" src="/static/img/cyberpunk.png">
 				</div>
 				<div class="absolute z-10 uppercase font-title font-bold text-9xl text-gray-200 tracking-widest" id="main-text">
 					Morgenrot
 				</div>
 			</div>
+
 		</div>
 
+		<!-- Image Generator Section -->
 		<div id="generator" class="grid grid-cols-2 h-screen">
+
+			<!-- Left half is the place where the image is shown -->
 			<div>
 				<div class="flex items-center justify-center h-screen">
 					<div id="image-div" class="w-96 h-96 border-2 rounded-lg">
-						<img src="{{ image_link }}">
+						<img src="{{ image_url }}">
 					</div>
 				</div>
 			</div>
-
+			
+			<!-- Right half is the input form -->
 			<div>
 				<div class="flex items-center justify-center h-screen">
-					<form action="{{ url_for('process_form') }}" method="post">
 
-						<label for="positive_input" class="text-gray-200 font-title uppercase">Input Text</label>
-						<br>
-						<textarea name="positive_input" id="positive_input" rows="5" cols="60" class="font-title rounded-lg"></textarea>
-						<br>
-						<br>
+					<!-- IMPORTANT: 
+						process_form is the route which app.py routes to
+						POST method 
+					-->
+					<form action="/process_inputs" method="POST">
+
+						<label for="positive_input" class="text-gray-200 font-title uppercase">Input Text</label><br>
+						<!-- must have name="positive_input" here, everything else doesn't really matter -->
+						<textarea name="positive_input" id="positive_input" rows="5" cols="60" class="font-title rounded-lg"></textarea><br><br>
 	
-						<label for="negative_input" class="text-gray-200 font-title uppercase">Negative Input Text</label>
-						<br>
-						<textarea name="negative_input" id="negative_input" rows="5" cols="60" class="font-title rounded-lg"></textarea>
-						<br>
-						<br>
+						<label for="negative_input" class="text-gray-200 font-title uppercase">Negative Input Text</label><br>
+						<!-- same for name="negative_input" -->
+						<textarea name="negative_input" id="negative_input" rows="5" cols="60" class="font-title rounded-lg"></textarea><br><br>
 						
+						<!-- must have type="submit" -->
 						<input type="submit" value="Generate" class="text-gray-200 font-title uppercase border-2 rounded-lg">
 						
 					  </form>
 				</div>
 			</div>
+
 		</div>
+
 	</body>
 
 </html>
